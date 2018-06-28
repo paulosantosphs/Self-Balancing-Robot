@@ -12,6 +12,7 @@
 #include "mpu6050_reg.h"
 #include "i2c.h"
 #include "uart.h"
+#include "driver.h"
 
 void timer_setup();
 
@@ -31,6 +32,10 @@ int main(void) {
     double num = 1510034.385;
 
     i2c_init();
+    driver_init();
+
+    char rotation;
+    uint8_t pwm;
 
     uint8_t in;
 
@@ -115,7 +120,22 @@ int main(void) {
         theta_prev = theta_prev + K * theta_innov;
         P = (1 - K) * Pp;
 
+        if(theta_prev < 0){
+            rotation = 0;
+            pwm = (theta_prev * 150) * -1;
+        }else{
+            rotation = 1;
+            pwm = (theta_prev * 150);
+        }
+
+        send_pwm_motorA(pwm, rotation);
+        send_pwm_motorB(pwm, rotation);
+        
         uart_putc('\n');
+        dtostrf(pwm, 5, 4, buffer);   // convert interger into string (decimal format)
+        uart_puts(buffer);
+
+        /*uart_putc('\n');
         uart_puts("  Phi: ");
         dtostrf(phi_prev, 5, 4, buffer);   // convert interger into string (decimal format)
         uart_puts(buffer);
@@ -124,7 +144,7 @@ int main(void) {
         uart_puts(buffer);
         uart_puts("  Dt: ");
         dtostrf(dt, 5, 4, buffer);   // convert interger into string (decimal format)
-        uart_puts(buffer);
+        uart_puts(buffer);*/
 
     }
 }//end of main
