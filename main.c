@@ -87,6 +87,13 @@ int main(void) {
     phi_prev = atan2(accelY, accelZ); // row
     theta_prev = atan2(-accelX, sqrt(accelY * accelY + accelZ * accelZ)); // pitch
 
+
+    double kp = 10;
+    double kd = 5000;
+    double phi;
+    double phip = 0;
+    double dphi;
+
     for (;;) {
         get_time(&dt);
         mpu6050_read_accel_ALL(accel_buff);
@@ -120,22 +127,35 @@ int main(void) {
         theta_prev = theta_prev + K * theta_innov;
         P = (1 - K) * Pp;
 
-        if(theta_prev < 0){
+        phi = phi_prev * (180/3.14159);
+        dphi = (phi - phip)/dt;
+
+        if(phi < 0){
             rotation = 0;
-            pwm = (theta_prev * 150) * -1;
+            phi = phi * -1;
+            if((phi * kp) > 255){
+                pwm = 255;
+            }else{
+                pwm = (phi * kp + dphi * kd);
+            }
         }else{
             rotation = 1;
-            pwm = (theta_prev * 150);
+            if((phi * kp) > 255){
+                pwm = 255;
+            }else{
+                pwm = (phi * kp + dphi * kd);
+            }
         }
+
+        phip = phi;
 
         send_pwm_motorA(pwm, rotation);
         send_pwm_motorB(pwm, rotation);
         
         uart_putc('\n');
+        uart_puts(" PWM: ");
         dtostrf(pwm, 5, 4, buffer);   // convert interger into string (decimal format)
         uart_puts(buffer);
-
-        /*uart_putc('\n');
         uart_puts("  Phi: ");
         dtostrf(phi_prev, 5, 4, buffer);   // convert interger into string (decimal format)
         uart_puts(buffer);
@@ -144,7 +164,7 @@ int main(void) {
         uart_puts(buffer);
         uart_puts("  Dt: ");
         dtostrf(dt, 5, 4, buffer);   // convert interger into string (decimal format)
-        uart_puts(buffer);*/
+        uart_puts(buffer);
 
     }
 }//end of main
