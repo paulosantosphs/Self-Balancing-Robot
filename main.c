@@ -85,10 +85,10 @@ int main(void) {
     phi_prev = atan2(accelY, accelZ); // row
 
     //Control gains 
-    double kangle = -11.5904;
-    double kdangle = -126.8139;
-    double kposition = -4.5732;
-    double kspeed = -16.7060;
+    double kangle = -7.39;
+    double kdangle = -378.0778;
+    double kposition = -6.1310;
+    double kspeed = -24.3396;
 
     double phi;
     double phip = 0;
@@ -159,7 +159,7 @@ int main(void) {
         if(timerCounter > sampleTime){
         	controlFlag = 1;
 
-        	 //uart_putc('\n');
+        	//uart_putc('\n');
         	// uart_puts("SampleTime: ");
         	// dtostrf(timerCounter, 5, 4, buffer);   // convert interger into string (decimal format)
         	// uart_puts(buffer);
@@ -175,9 +175,9 @@ int main(void) {
 			pwm = (controlResult*255)/6;
 			 
         	if(phi < 0){
-        		rotation = 0;
-        	}else{
         		rotation = 1;
+        	}else{
+        		rotation = 0;
         	}
 
         	if(pwm < 0){
@@ -193,9 +193,9 @@ int main(void) {
 
      		controlFlag = 0;
 
-        	//uart_puts("PWM: ");
-        	//dtostrf(pwm, 5, 4, buffer);   // convert interger into string (decimal format)
-        	// uart_puts(buffer);
+        	//uart_puts("Control: ");
+        	//dtostrf(controlResult, 5, 4, buffer);   // convert interger into string (decimal format)
+        	//uart_puts(buffer);
         	// uart_puts("Angle: ");
         	// dtostrf(phi_prev, 5, 4, buffer);   // convert interger into string (decimal format)
         	// uart_puts(buffer);
