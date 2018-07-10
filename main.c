@@ -11,7 +11,7 @@
 #include "mpu6050.h"
 #include "mpu6050_reg.h"
 #include "i2c.h"
-#include "uart.h"
+//#include "uart.h"
 #include "driver.h"
 
 void timer_setup();
@@ -26,10 +26,8 @@ int main(void) {
     DDRC = 0xFF;   // Port C contains the pins for i2c
     DDRB = 1 << 5;
 
-    uart_init(UART_BAUD_SELECT(UART_BAUD_RATE, F_CPU));
+    //uart_init(UART_BAUD_SELECT(UART_BAUD_RATE, F_CPU));
     sei();
-
-    double num = 1510034.385;
 
     i2c_init();
     driver_init();
@@ -43,10 +41,10 @@ int main(void) {
     double accelX, accelY, accelZ;
     double gyroX, gyroY, gyroZ;
     double biasX, biasY;
-    double phi_accel, theta_accel;
-    double phi_innov, theta_innov;
-    double phi_est, theta_est;
-    double phi_prev, theta_prev;
+    double phi_accel;
+    double phi_innov;
+    double phi_est;
+    double phi_prev;
 
     double dt;
     char buffer[7];
@@ -54,9 +52,9 @@ int main(void) {
     _delay_ms(1000);
 
     if (mpu6050_start() == 0x68) {
-        uart_puts("Found MPU!\n");
+        //uart_puts("Found MPU!\n");
     } else {
-        uart_puts("init error, got value:");
+        //uart_puts("init error, got value:");
         return 0;
     }
 
@@ -85,14 +83,27 @@ int main(void) {
     double Pp, K;
     mpu6050_read_accel_ALL(accel_buff);
     phi_prev = atan2(accelY, accelZ); // row
-    theta_prev = atan2(-accelX, sqrt(accelY * accelY + accelZ * accelZ)); // pitch
 
+    //Control gains 
+    double kangle = -11.5904;
+    double kdangle = -126.8139;
+    double kposition = -4.5732;
+    double kspeed = -16.7060;
 
-    double kp = 10;
-    double kd = 5000;
     double phi;
     double phip = 0;
     double dphi;
+    double accelYp = 0;
+    double speedY = 0;
+    double speedYp = 0;
+    double positionY = 0;
+    double positionYp = 0;
+
+    double sampleTime = 0.03;
+    double timerCounter = 0;
+
+    double controlResult;
+    char controlFlag;
 
     for (;;) {
         get_time(&dt);
@@ -110,62 +121,104 @@ int main(void) {
 
         // estimation
         phi_est = phi_prev + dt * (gyroX - biasX);
-        theta_est = theta_prev + dt * (gyroY - biasY);
         Pp = P + Q;
 
         // innovation
         phi_accel = atan2(accelY, accelZ); // row
         phi_innov = phi_accel - phi_est;
-        theta_accel = atan2(-accelX, sqrt(accelY * accelY + accelZ * accelZ)); // pitch
-        theta_innov = theta_accel - theta_est;
 
         // Kalman gain
         K = Pp / (Pp + R);
 
         // correction
         phi_prev = phi_prev + K * phi_innov;
-        theta_prev = theta_prev + K * theta_innov;
         P = (1 - K) * Pp;
 
-        phi = phi_prev * (180/3.14159);
+        //State variables
+        phi = phi_prev;
         dphi = (phi - phip)/dt;
+        speedY = speedY + (accelY - accelYp) * dt;
+        positionY = positionY + (speedY - speedYp) * dt;
 
-        if(phi < 0){
-            rotation = 0;
-            phi = phi * -1;
-            if((phi * kp) > 255){
-                pwm = 255;
-            }else{
-                pwm = (phi * kp + dphi * kd);
-            }
-        }else{
-            rotation = 1;
-            if((phi * kp) > 255){
-                pwm = 255;
-            }else{
-                pwm = (phi * kp + dphi * kd);
-            }
+
+        if(speedY > 0.4){
+        	speedY = 0;
+        }
+        if(speedY < -0.4){
+        	speedY = 0;
+        }
+        if(positionY > 0.02){
+        	positionY = 0;
+        }
+        if(positionY < -0.02){
+        	positionY = 0;
         }
 
+
+        timerCounter = timerCounter + dt;
+        if(timerCounter > sampleTime){
+        	controlFlag = 1;
+
+        	 //uart_putc('\n');
+        	// uart_puts("SampleTime: ");
+        	// dtostrf(timerCounter, 5, 4, buffer);   // convert interger into string (decimal format)
+        	// uart_puts(buffer);
+
+        	timerCounter = 0;
+        }
+
+        if(controlFlag){
+
+        	controlResult = (phi * kangle + dphi * kdangle + positionY * kposition + speedY * kspeed);
+        	
+        	//Conversion of control result to PWM(6v == 255)
+			pwm = (controlResult*255)/6;
+			 
+        	if(phi < 0){
+        		rotation = 0;
+        	}else{
+        		rotation = 1;
+        	}
+
+        	if(pwm < 0){
+        		pwm = pwm * -1;
+        	}
+        	if(pwm > 255){
+        		pwm = 255;
+        	}
+
+
+        	send_pwm_motorA(pwm, rotation);
+        	send_pwm_motorB(pwm, rotation);
+
+     		controlFlag = 0;
+
+        	//uart_puts("PWM: ");
+        	//dtostrf(pwm, 5, 4, buffer);   // convert interger into string (decimal format)
+        	// uart_puts(buffer);
+        	// uart_puts("Angle: ");
+        	// dtostrf(phi_prev, 5, 4, buffer);   // convert interger into string (decimal format)
+        	// uart_puts(buffer);
+        	// uart_puts(" AngleDt: ");
+        	// dtostrf(dphi, 5, 4, buffer);   // convert interger into string (decimal format)
+        	// uart_puts(buffer);
+        	// uart_puts(" speedY: ");
+        	// dtostrf(speedY, 5, 4, buffer);   // convert interger into string (decimal format)
+        	// uart_puts(buffer);
+        	// uart_puts(" positionY: ");
+        	// dtostrf(positionY, 5, 4, buffer);   // convert interger into string (decimal format)
+        	// uart_puts(buffer);
+
+        }
+
+        // uart_putc('\n');
+        // uart_puts("dt: ");
+        // dtostrf(dt, 5, 4, buffer);   // convert interger into string (decimal format)
+        // uart_puts(buffer);
+
         phip = phi;
-
-        send_pwm_motorA(pwm, rotation);
-        send_pwm_motorB(pwm, rotation);
-        
-        uart_putc('\n');
-        uart_puts(" PWM: ");
-        dtostrf(pwm, 5, 4, buffer);   // convert interger into string (decimal format)
-        uart_puts(buffer);
-        uart_puts("  Phi: ");
-        dtostrf(phi_prev, 5, 4, buffer);   // convert interger into string (decimal format)
-        uart_puts(buffer);
-        uart_puts("  Theta: ");
-        dtostrf(theta_prev, 5, 4, buffer);   // convert interger into string (decimal format)
-        uart_puts(buffer);
-        uart_puts("  Dt: ");
-        dtostrf(dt, 5, 4, buffer);   // convert interger into string (decimal format)
-        uart_puts(buffer);
-
+        accelYp = accelY;
+        speedYp = speedY;
     }
 }//end of main
 
