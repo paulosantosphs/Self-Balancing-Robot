@@ -85,10 +85,10 @@ int main(void) {
     phi_prev = atan2(accelY, accelZ); // row
 
     //Control gains 
-    double kangle = -7.39;
-    double kdangle = -378.0778;
-    double kposition = -6.1310;
-    double kspeed = -24.3396;
+    double kangle = -10.1139;
+    double kdangle = -279.0673;
+    double kposition = -6.3112;
+    double kspeed = -40.6784;
 
     double phi;
     double phip = 0;
@@ -99,7 +99,7 @@ int main(void) {
     double positionY = 0;
     double positionYp = 0;
 
-    double sampleTime = 0.03;
+    double sampleTime = 0.001;
     double timerCounter = 0;
 
     double controlResult;
