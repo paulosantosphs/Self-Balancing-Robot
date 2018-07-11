@@ -35,8 +35,6 @@ int main(void) {
     char rotation;
     uint8_t pwm;
 
-    uint8_t in;
-
     int16_t accel_buff[3], gyro_buff[3];
     double accelX, accelY, accelZ;
     double gyroX, gyroY, gyroZ;
