@@ -1,6 +1,6 @@
 # define useful variables
 MMCU = atmega328p
-PORT = /dev/ttyACM0
+PORT = /dev/ttyUSB0
 BAUD = 115200
 
 NAME = main

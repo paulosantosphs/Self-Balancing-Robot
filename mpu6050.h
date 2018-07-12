@@ -9,12 +9,12 @@
 //start mpu6050 over I2C
 //return 0x68(device address with AD0 low), 
 //return 0 if error
-uint8_t mpu6050_start(void);
+uint8_t mpu6050_start(uint8_t address);
 
 
 //configure important settings in mpu6050
 //subject to change app(ilcation) by app
-void mpu6050_init(void);
+void mpu6050_init(uint8_t address);
 
 
 // read gyro/accel X, Y, Z all at once, high- & low-8-bits combined
@@ -22,25 +22,25 @@ void mpu6050_init(void);
 // buff must have at least 3 available places
 // data sequence: (buff)-->X, (buff+1)-->Y, (buff+2)-->Z
 // no error handling for too small buff
-void mpu6050_read_gyro_ALL(int16_t *buff);
+void mpu6050_read_gyro_ALL(uint8_t address, int16_t *buff);
 
-void mpu6050_read_accel_ALL(int16_t *buff);
+void mpu6050_read_accel_ALL(uint8_t address, int16_t *buff);
 
 
 //read gyro/accel X, Y, Z, high- & low-8-bits separated, high first
 //buff must have at least 2 available places
 //no error handling for too small buff
-void mpu6050_read_gyro_X(uint8_t *buff);
+void mpu6050_read_gyro_X(uint8_t address, uint8_t *buff);
 
-void mpu6050_read_gyro_Y(uint8_t *buff);
+void mpu6050_read_gyro_Y(uint8_t address, uint8_t *buff);
 
-void mpu6050_read_gyro_Z(uint8_t *buff);
+void mpu6050_read_gyro_Z(uint8_t address, uint8_t *buff);
 
-void mpu6050_read_accel_X(uint8_t *buff);
+void mpu6050_read_accel_X(uint8_t address, uint8_t *buff);
 
-void mpu6050_read_accel_Y(uint8_t *buff);
+void mpu6050_read_accel_Y(uint8_t address, uint8_t *buff);
 
-void mpu6050_read_accel_Z(uint8_t *buff);
+void mpu6050_read_accel_Z(uint8_t address, uint8_t *buff);
 
 
 #endif
